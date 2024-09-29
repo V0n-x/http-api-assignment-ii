@@ -1,13 +1,126 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <title>Our simple HTTP server</title>
   <link rel="stylesheet" type="text/css" href="/style.css">
-  
-  <script>
 
+  <script>
+    const handleResponse = async (response, parseResponse) => {
+      const content = document.querySelector('#content');
+      content.innerHTML = '';
+      switch (response.status) {
+        case 200:
+          content.innerHTML = '<h1><b>Success</b></h1>';
+          break;
+        case 201:
+          content.innerHTML = '<h1><b>Created</b></h1>';
+          break;
+        case 204:
+          content.innerHTML = '<h1><b>Updated</b></h1>';
+          break;
+        case 400:
+          content.innerHTML = '<h1><b>Bad Request</b></h1>';
+          break;
+        case 404:
+          content.innerHTML = '<h1><b>Resource Not Found</b></h1>';
+          break;
+        default:
+          content.innerHTML = '<h1>Error code not implemented by client.</h1>';
+          break;
+      }
+      let obj;
+      let jsonString;
+      switch (parseResponse) {
+        case 'get':
+          obj = await response.json();
+          if (response.status === 404) {
+            jsonString = JSON.stringify(obj.message);
+          }
+          else {
+            jsonString = JSON.stringify(obj.users);
+          }
+          content.innerHTML += `<p>${jsonString}</p>`;
+          break;
+        case 'post':
+          if (response.status !== 204) {
+            obj = await response.json();
+            jsonString = JSON.stringify(obj.message);
+            content.innerHTML += `<p>${jsonString}</p>`;
+          }
+          
+          break;
+        case 'head':
+          break;
+        default:
+          break;
+      }
+      if (parseResponse) {
+        
+      } 
+      else {
+        //content.innerHTML += '<p>Meta Data Received</p>';
+      }
+    };
+
+    const sendPost = async (nameForm) => {
+      const nameAction = nameForm.getAttribute('action');
+      const method = nameForm.getAttribute('method');
+      
+      const nameField = nameForm.querySelector('#nameField');
+      const ageField = nameForm.querySelector('#ageField');
+      const formData = `name=${nameField.value}&age=${ageField.value}`;
+
+      let response = await fetch(nameAction, {
+        method: method,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: formData,
+      });
+
+      handleResponse(response, method);
+    };
+
+    const sendGet = async (userForm) => {
+      const path = document.querySelector('#urlField').value;
+      const method = document.querySelector('#methodSelect').value;
+
+      let response = await fetch(path, {
+        method: method,
+        headers: {
+          'Accept': 'application/json'
+        }
+      });
+
+      handleResponse(response, method);
+    };
+
+    const init = () => {
+      const nameForm = document.querySelector('#nameForm');
+      const userForm = document.querySelector('#userForm');
+
+      const addUser = (e) => {
+        e.preventDefault();
+        sendPost(nameForm);
+        return false;
+      }
+
+      const getUser = (e) => {
+        e.preventDefault();
+        sendGet(userForm);
+        // https://stackoverflow.com/questions/1357118/event-preventdefault-vs-return-false
+        return false;
+      }
+
+      nameForm.addEventListener('submit', addUser);
+      userForm.addEventListener('submit', getUser);
+    };
+    window.onload = init;
   </script>
 </head>
+
 <body>
   <section id="top">
     <h3>POST Status Code Tests</h3>
@@ -15,7 +128,7 @@
       <label for="name">Name: </label>
       <input id="nameField" type="text" name="name" />
       <label for="age">Age: </label>
-      <input id="ageField" type="number" name="age" min="0" max="100" step="1"/>
+      <input id="ageField" type="number" name="age" min="0" max="100" step="1" />
       <input type="submit" value="Add User" />
     </form>
     <form id="userForm" action="/getUsers" method="get">
@@ -33,4 +146,5 @@
   <section id="content">
   </section>
 </body>
+
 </html>
